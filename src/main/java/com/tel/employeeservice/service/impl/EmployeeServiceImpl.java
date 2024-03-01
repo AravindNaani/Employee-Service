@@ -6,7 +6,6 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
-import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -14,6 +13,7 @@ import com.tel.employeeservice.dao.EmployeeRepo;
 import com.tel.employeeservice.dto.AddressDTO;
 import com.tel.employeeservice.dto.EmployeeDTO;
 import com.tel.employeeservice.entity.Employee;
+import com.tel.employeeservice.openfeign.AddressClient;
 import com.tel.employeeservice.service.EmployeeService;
 
 @Service
@@ -31,12 +31,15 @@ public class EmployeeServiceImpl implements EmployeeService {
 	@Autowired
 	DiscoveryClient discoveryClient;
 	
+	@Autowired
+	AddressClient addressClient;
+	
 //	@Autowired
 //	LoadBalancerClient loadBalancerClient;
 //	
 	@Override
 	public EmployeeDTO getEmployee(int id) {
-		AddressDTO addressDTO = restCallWithLoadBalancedAnnotation(id);
+		AddressDTO addressDTO =addressClient.getAddress(id);
 		Employee employee = employeeRepo.findById(id).get();
 		EmployeeDTO employeeDTO = modelMapper.map(employee, EmployeeDTO.class);
 		employeeDTO.setAddressDTO(addressDTO);
@@ -70,6 +73,16 @@ public class EmployeeServiceImpl implements EmployeeService {
 		
 		AddressDTO addressDTO = restTemplate.postForObject("http://address-service/address-service/api/get-address/{id}", null, AddressDTO.class, id);
 		return addressDTO;
+	}
+
+	@Override
+	public void saveEmployee(EmployeeDTO employeeDTO) {
+		AddressDTO addressDTO = employeeDTO.getAddressDTO();
+		addressDTO.setEmployeeId(employeeDTO.getId());
+		addressClient.saveAddress(addressDTO);
+		Employee employee = modelMapper.map(employeeDTO, Employee.class);
+		employeeRepo.save(employee);
+		
 	}
 
 }

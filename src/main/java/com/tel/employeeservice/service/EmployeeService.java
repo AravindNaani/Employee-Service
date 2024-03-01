@@ -6,4 +6,6 @@ public interface EmployeeService {
 	
 	EmployeeDTO getEmployee(int id);
 
+	void saveEmployee(EmployeeDTO employeeDTO);
+
 }
